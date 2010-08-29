@@ -30,7 +30,9 @@ module Gui
 					#Gui::NCurses::Controller::Input.new()
 				rescue Object => e
 					FFI::NCurses.endwin
-					puts "FFI::NCurses: init failed: #{e}"
+					init_failed = I18n.t("init_failed", {:to => Registry.i18n[:langauge]})
+
+					puts "FFI::NCurses: #{init_failed}: #{e}"
 					Main.exit()
 				end
 				Main.register_exit_callback(lambda { Gui::NCurses::end })
@@ -169,9 +171,10 @@ module Gui
 
 		class Map < LabelledPort
 			def initialize()
-				assert((not Registry.actual_windows[:Player].nil?), "in #{self.class}.initialize(): not ActualWindows.Player.nil?")
-				assert((not Registry.actual_windows[:AttackStatus].nil?), "in #{self.class}.initialize(): not ActualWindows.AttackStatus.nil?")
-				assert((not Registry.actual_windows[:Log].nil?), "in #{self.class}.initialize(): not ActualWindows.Log.nil?")
+				_in = I18n.t("in", {:to => Registry.i18n[:language]})
+				assert((not Registry.actual_windows[:Player].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.Player.nil?")
+				assert((not Registry.actual_windows[:AttackStatus].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.AttackStatus.nil?")
+				assert((not Registry.actual_windows[:Log].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.Log.nil?")
 
 				opts   = calc_size()
 				if not opts.nil?
@@ -225,8 +228,9 @@ module Gui
 		
 		class Player < LabelledPort
 			def initialize()
-				assert((not Registry.actual_windows[:AttackStatus].nil?), "in #{self.class}.initialize(): not ActualWindows.AttackStatus.nil?")
-				assert((not Registry.actual_windows[:Log].nil?), "in #{self.class}.initialize(): not ActualWindows.Log.nil?")
+				_in = I18n.t("in", {:to => Registry.i18n[:language]})
+				assert((not Registry.actual_windows[:AttackStatus].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.AttackStatus.nil?")
+				assert((not Registry.actual_windows[:Log].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.Log.nil?")
 
 				opts = calc_size()
 				if not opts.nil?
@@ -286,7 +290,8 @@ module Gui
 
 		class AttackStatus < Port
 			def initialize()
-				assert((not Registry.actual_windows[:Log].nil?), "in #{self.class}.initialize(): not ActualWindows.Log.nil?")
+				_in = I18n.t("in", {:to => Registry.i18n[:language]})
+				assert((not Registry.actual_windows[:Log].nil?), "#{_in} #{self.class}.initialize(): not ActualWindows.Log.nil?")
 
 				opts = calc_size()
 				if not opts.nil?

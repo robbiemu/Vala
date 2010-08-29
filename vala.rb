@@ -6,6 +6,13 @@ require 'construct'
 $:.push(".").uniq!
 require 'lib/main'
 require 'lib/i18n'
+	Dir.glob("i18n/*").reject{ |e| e =~ /(?:~|.swp)$/}.select{|e| not File.directory? e  }.each do |fh|
+		# files not matching gedit and vi temporary files
+		dict = (fh.split("/"))[1]
+		I18n.add_dictionary(dict, YAML.load_file(fh) || {})
+		puts "I18n: << #{dict} (#{fh})"
+end
+ 
 require 'lib/registry'
 	Registry.i18n[:language]   = :en
 	Registry.config[:filename] = "vala.conf"
