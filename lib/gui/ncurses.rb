@@ -6,8 +6,13 @@ end
 
 module Gui
 	module NCurses
-		TerminalHeight = 24
-		TerminalWidth  = 80
+		module Terminal
+			class << self
+				def size
+				  %x{stty size}.split.map { |x| x.to_i }.reverse
+				end  
+			end
+		end
 
 		class Controller
 			attr_reader :strscr
@@ -34,32 +39,80 @@ module Gui
 				#order is important!
 				assert((Gui::NCurses::Log.method_defined? :resize), "Gui::NCurses::Log.method_defined? :resize")
 				assert((Gui::NCurses::Log.method_defined? :calc_size), "Gui::NCurses::Log.method_defined? :calc_size")
+				assert((Gui::NCurses::Log.method_defined? :update), "Gui::NCurses::Log.method_defined? :update")
 				Gui::NCurses::Log.new()
 
 				assert((Gui::NCurses::AttackStatus.method_defined? :resize), "Gui::NCurses::AttackStatus.method_defined? :resize")
 				assert((Gui::NCurses::AttackStatus.method_defined? :calc_size), "Gui::NCurses::AttackStatus.method_defined? :calc_size")
+				assert((Gui::NCurses::AttackStatus.method_defined? :update), "Gui::NCurses::AttackStatus.method_defined? :update")
 				Gui::NCurses::AttackStatus.new()
 
 				assert((Gui::NCurses::Player.method_defined? :resize), "Gui::NCurses::Player.method_defined? :resize")
 				assert((Gui::NCurses::Player.method_defined? :calc_size), "Gui::NCurses::Player.method_defined? :calc_size")
+				assert((Gui::NCurses::Player.method_defined? :update), "Gui::NCurses::Player.method_defined? :update")
 				Gui::NCurses::Player.new()
 
 				assert((Gui::NCurses::Map.method_defined? :resize), "Gui::NCurses::Map.method_defined? :resize")
 				assert((Gui::NCurses::Map.method_defined? :calc_size), "Gui::NCurses::Map.method_defined? :calc_size")
+				assert((Gui::NCurses::Map.method_defined? :update), "Gui::NCurses::Map.method_defined? :update")
 				Gui::NCurses::Map.new()
 
 				#Gui::NCurses::Controller::Input.new()
-				
-				Main.register_exit_callback(lambda { Gui::Controller::end })
+				Gui::Controller.trap_exit
 			end
 
 			def start()
+				if Registry.debug
+					Registry.actual_windows[:AttackStatus].port.update("Att/Def bias: A==- Ground bias: gain") 
+					Registry.actual_windows[:Map].label.update("Vala -- Dungeon:1") 
+map = <<EOF
+   #......................................##
+   #......................................##
+   #.......................................#
+   #...............###....................##
+   #.....................................## 
+   #....................................##  
+   #...................................##   
+   #..................................##    
+   #.................................##     
+   #...............###...............#      
+   ##..............# #...............#      
+    ##.............# #...............#      
+     ##............###..............##      
+      ##............#..............##       
+       ##...........#.............##        
+        #...........#.............#         
+EOF
+					Registry.actual_windows[:Map].port.update(map) 
+					Registry.actual_windows[:Player].label.update("Robbie, Level N\nMinotaur of Blah")
+statuses = <<EOF
+Vigour 100/100  ================
+Health 100/160  ==========------
+Magic  5/9      =========-------
+   
+AC:      4      Str: 16
+EV:     10      Dex: 10
+SH:----8/8      Int: 8 
+     
+Wp: a) a saw
+Qv: nothing quivered
+       
+   (statuses)
+EOF
+					Registry.actual_windows[:Player].port.update(statuses) 
+					Registry.actual_windows[:Log].handle.update("-" * (Gui::NCurses::Terminal::size()[0] - 4) + "[+]-") 
+					Registry.actual_windows[:Log].port.update("Line 1\nLine 2\nLine 3\nLine 4\nLine 5") 
+				end
 			end
 
 			def redraw()
+				Registry.actual_windows.each do |w|
+					w.update
+				end
 			end
 
 			def clear()
+				FFI::NCurses.clear
 			end
 
 			def end()
@@ -75,12 +128,12 @@ module Gui
 				if not data.nil?
 					self.write(data)
 				end
-				FFI::NCurses.wrefesh(self.window)
+				FFI::NCurses.wrefresh(@window)
 			end
 			
 			def write(data)
 				@data = data
-				FFI::NCurses.waddstr(data)
+				FFI::NCurses.waddstr(@window, data)
 			end
 			
 			def resize(opts={})
@@ -95,6 +148,7 @@ module Gui
 				@x     = opts[:x]
 				@y     = opts[:y]
 
+				FFI::NCurses.delwin(@window)
 				self.window = FFI::NCurses.newwin(@lines, @width, @x, @y)
 
 				data = @data
@@ -219,14 +273,15 @@ module Gui
 			end
 
 			def calc_size()
-				port_lines = TerminalHeight - ( 
+				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				port_lines = terminal_height - ( 
 					Registry.actual_windows[:AttackStatus].lines +
 					Registry.actual_windows[:Log].lines)
 				if not Registry.actual_windows[:Log].is_popup
 					port_lines += 1
 				end
 				
-				width = TerminalWidth - (1 + Registry.actual_windows[:Player].width)
+				width = terminal_width - (1 + Registry.actual_windows[:Player].width)
 				
 				x = 0
 				y = 0
@@ -276,7 +331,8 @@ module Gui
 			end
 
 			def calc_size()
-				port_lines = TerminalHeight - ( 
+				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				port_lines = terminal_height - ( 
 					Registry.actual_windows[:AttackStatus].lines +
 					Registry.actual_windows[:Log].lines)
 				if not Registry.actual_windows[:Log].is_popup
@@ -286,22 +342,22 @@ module Gui
 				#First, set the width to the preferred width
 				width = Vala.config.Gui.NCurses.Player.preferred_width or 34
 				#then set the width to the largest value, if it was too big
-				while width > TerminalWidth
+				while width > terminal_width
 					width -= 1
 				end
 				
 				x = 0
-				y = TerminalWidth - width
+				y = terminal_width - width
 
 				if width > 0 and port_lines > 0
 					return {
 						:label => {
-							:lines => 1,
+							:lines => 2,
 							:width => width,
 							:x     => 0,
 							:y     => y
 						}, :port => {
-							:lines => port_lines,
+							:lines => port_lines - 2,
 							:width => width,
 							:x     => 1,
 							:y     => y
@@ -336,14 +392,15 @@ module Gui
 			end		
 			
 			def calc_size()
-				lines = TerminalHeight - Registry.actual_windows[:Log].lines
+				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				lines = terminal_height - Registry.actual_windows[:Log].lines
 				if lines > 1
 					lines = 1
 				end
 				
-				width = TerminalWidth
+				width = terminal_width
 				
-				x = TerminalHeight - (lines + Registry.actual_windows[:Log].lines)
+				x = terminal_height - (lines + Registry.actual_windows[:Log].lines)
 				if not Registry.actual_windows[:Log].is_popup
 					x += 1
 				end
@@ -427,17 +484,19 @@ module Gui
 			end
 
 			def calc_size()
+				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+
 				#First, set the lines to the preferred value
 				lines = Vala.config.Gui.NCurses.Log.preferred_lines or 5
 				if @is_popup
 					lines += 1
 				end
 				#then set the lines to the largest value, if it was too big
-				while lines > TerminalHeight
+				while lines > terminal_height
 					lines -= 1
 				end
-				width = TerminalWidth
-				x = TerminalHeight - lines
+				width = terminal_width
+				x = terminal_height - lines
 				y = 0
 
 				if lines > 0

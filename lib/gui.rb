@@ -16,6 +16,10 @@ module Gui
 				end
 			end
 
+			def trap_exit()
+				Main.register_exit_callback(lambda { Gui::Controller::end })
+			end
+
 			def start()
 				@screen.start()
 			end
