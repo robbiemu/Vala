@@ -3,9 +3,16 @@ module Main
 		attr_accessor :config
 		@@traps = []
 
+		def loop()
+			Kernel.loop do
+				sleep 1
+			end
+		end
+
 		def start()
 			Gui::Controller.init
 			Gui::Controller.start
+			Main.loop()
 		end
 
 		def trap(p)

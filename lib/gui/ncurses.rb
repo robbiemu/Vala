@@ -6,6 +6,9 @@ end
 
 module Gui
 	module NCurses
+		TerminalHeight = 24
+		TerminalWidth  = 80
+
 		class Controller
 			attr_reader :strscr
 
@@ -21,13 +24,6 @@ module Gui
 					FFI::NCurses.noecho
 					FFI::NCurses.keypad(@stdscr, 1)
 					FFI::NCurses.clear
-
-					#order is important!
-					Gui::NCurses::Controller::Log.new()
-					Gui::NCurses::Controller::AttackStatus.new()
-					Gui::NCurses::Controller::Player.new()
-					Gui::NCurses::Controller::Map.new()
-					#Gui::NCurses::Controller::Input.new()
 				rescue Object => e
 					FFI::NCurses.endwin
 					init_failed = I18n.t("init_failed", {:to => Registry.i18n[:langauge]})
@@ -35,8 +31,25 @@ module Gui
 					puts "FFI::NCurses: #{init_failed}: #{e}"
 					Main.exit()
 				end
-				Main.register_exit_callback(lambda { Gui::NCurses::end })
+				#order is important!
+				Gui::NCurses::Log.new()
+				Gui::NCurses::AttackStatus.new()
+				Gui::NCurses::Player.new()
+				Gui::NCurses::Map.new()
+				#Gui::NCurses::Controller::Input.new()
+				
+				Main.register_exit_callback(lambda { Gui::Controller::end })
 			end
+
+			def start()
+			end
+
+			def redraw()
+			end
+
+			def clear()
+			end
+
 			def end()
 				FFI::NCurses.endwin
 			end
@@ -195,13 +208,13 @@ module Gui
 
 			def calc_size()
 				port_lines = TerminalHeight - ( 
-					ActualWindows.AttackStatus.lines +
-					ActualWindows.Log.lines)
-				if not ActualWindows.Log.is_popup
+					Registry.actual_windows[:AttackStatus].lines +
+					Registry.actual_windows[:Log].lines)
+				if not Registry.actual_windows[:Log].is_popup
 					port_lines += 1
 				end
 				
-				width = TerminalWidth - (1 + ActualWindows.Player.width)
+				width = TerminalWidth - (1 + Registry.actual_windows[:Player].width)
 				
 				x = 0
 				y = 0
@@ -252,9 +265,9 @@ module Gui
 
 			def calc_size()
 				port_lines = TerminalHeight - ( 
-					ActualWindows.AttackStatus.lines +
-					ActualWindows.Log.lines)
-				if not ActualWindows.Log.is_popup
+					Registry.actual_windows[:AttackStatus].lines +
+					Registry.actual_windows[:Log].lines)
+				if not Registry.actual_windows[:Log].is_popup
 					port_lines += 1
 				end
 				
@@ -305,21 +318,21 @@ module Gui
 
 				@x_updaters = []
 				@y_updaters = []
-				@x_updaters.push Map, Players
+				@x_updaters.push Gui::NCurses::Map, Gui::NCurses::Player
 
 				Registry.actual_windows[:AttackStatus] = self
 			end		
 			
 			def calc_size()
-				lines = TerminalHeight - ActualWindows.Log.lines
+				lines = TerminalHeight - Registry.actual_windows[:Log].lines
 				if lines > 1
 					lines = 1
 				end
 				
 				width = TerminalWidth
 				
-				x = TerminalHeight - (lines + ActualWindows.Log.lines)
-				if not ActualWindows.Log.is_popup
+				x = TerminalHeight - (lines + Registry.actual_windows[:Log].lines)
+				if not Registry.actual_windows[:Log].is_popup
 					x += 1
 				end
 				y = 0
@@ -356,10 +369,10 @@ module Gui
 		end
 		
 		class Log < Port
-			attr_reader :is_popup
+			attr_reader :is_popup, :port_lines
 
 			def initialize()
-				@is_popup = Vala.config.Gui.NCurses.Log.popup or true
+				@is_popup = Vala.config.Gui.NCurses.Log.popup
 
 				opts   = calc_size()
 				if not opts.nil?
@@ -368,6 +381,7 @@ module Gui
 						@width = opts[:port][:width]
 						@x = opts[:port][:x]
 						@y = opts[:port][:y]
+						@port_lines = opts[:port][:lines]
 					else
 						@lines = opts[:port][:lines]
 						@width = opts[:port][:width]
@@ -375,7 +389,7 @@ module Gui
 						@y = opts[:port][:y]
 					end
 
-					@label = Window.new(opts[:label][:lines], opts[:label][:width], opts[:label][:x], opts[:label][:y])
+					@label = Window.new(opts[:handle][:lines], opts[:handle][:width], opts[:handle][:x], opts[:handle][:y])
 					@port  = Window.new(opts[:port][:lines], opts[:port][:width], opts[:port][:x], opts[:port][:y])
 				else
 					@lines = -1
@@ -386,8 +400,8 @@ module Gui
 
 				if @lines > 0
 					if @is_popup
-						@handle = Window.new(     1, @width, @x,   0)
-						@port   = Window.new(@lines, @width, @x+1, 0)
+						@handle = Window.new(opts[:handle][:lines], @width, @x,   0)
+						@port   = Window.new(opts[:port][:lines] - opts[:handle][:lines], @width, @x+1, 0)
 					else
 						@port   = Window.new(@lines, @width, @x,   0)
 					end
@@ -395,9 +409,9 @@ module Gui
 
 				@x_updaters = []
 				@y_updaters = []
-				@x_updaters.push Map, Players, AttackStatus
+				@x_updaters.push Gui::NCurses::Map, Gui::NCurses::Player, Gui::NCurses::AttackStatus
 
-				Registry.actual_windows[:AttackStatus] = self
+				Registry.actual_windows[:Log] = self
 			end
 
 			def calc_size()
@@ -411,7 +425,7 @@ module Gui
 					lines -= 1
 				end
 				width = TerminalWidth
-				x = TerminalHeight - @lines
+				x = TerminalHeight - lines
 				y = 0
 
 				if lines > 0
@@ -423,7 +437,7 @@ module Gui
 								:x     => 0,
 								:y     => 0
 							}, :port => {
-								:lines => port_lines,
+								:lines => lines - 1,
 								:width => width,
 								:x     => 1,
 								:y     => 0						
@@ -432,7 +446,7 @@ module Gui
 					else
 						return {
 							:port => {
-								:lines => port_lines,
+								:lines => lines,
 								:width => width,
 								:x     => 1,
 								:y     => 0						
