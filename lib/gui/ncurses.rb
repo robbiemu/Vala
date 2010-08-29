@@ -32,10 +32,22 @@ module Gui
 					Main.exit()
 				end
 				#order is important!
+				assert((Gui::NCurses::Log.method_defined? :resize), "Gui::NCurses::Log.method_defined? :resize")
+				assert((Gui::NCurses::Log.method_defined? :calc_size), "Gui::NCurses::Log.method_defined? :calc_size")
 				Gui::NCurses::Log.new()
+
+				assert((Gui::NCurses::AttackStatus.method_defined? :resize), "Gui::NCurses::AttackStatus.method_defined? :resize")
+				assert((Gui::NCurses::AttackStatus.method_defined? :calc_size), "Gui::NCurses::AttackStatus.method_defined? :calc_size")
 				Gui::NCurses::AttackStatus.new()
+
+				assert((Gui::NCurses::Player.method_defined? :resize), "Gui::NCurses::Player.method_defined? :resize")
+				assert((Gui::NCurses::Player.method_defined? :calc_size), "Gui::NCurses::Player.method_defined? :calc_size")
 				Gui::NCurses::Player.new()
+
+				assert((Gui::NCurses::Map.method_defined? :resize), "Gui::NCurses::Map.method_defined? :resize")
+				assert((Gui::NCurses::Map.method_defined? :calc_size), "Gui::NCurses::Map.method_defined? :calc_size")
 				Gui::NCurses::Map.new()
+
 				#Gui::NCurses::Controller::Input.new()
 				
 				Main.register_exit_callback(lambda { Gui::Controller::end })
@@ -471,11 +483,11 @@ module Gui
 				end
 			end
 
-			def resize(opts={})
-				(@is_popup)? popup_resize(opts): no_popup_resize(opts)
+			def resize(opts={}, notifications=true)
+				(@is_popup)? popup_resize(opts, bool): no_popup_resize(opts, bool)
 			end
 
-			def no_popup_resize(opts={})
+			def no_popup_resize(opts={}, notifications)
 				old = {
 					:width => @width,
 					:lines => @lines,
@@ -490,10 +502,10 @@ module Gui
 
 				@port.resize(opts)
 
-				notify(opts, old)
+				notify(opts, old) if notifications
 			end
 
-			def popup_resize(opts={}) 
+			def popup_resize(opts={}, notifications) 
 				opts = {
 					:width => (width or @width),
 					:lines => (lines or @lines),
@@ -524,7 +536,7 @@ module Gui
 					:y     => @y
 				})
 
-				notify(opts, {:width => old_width, :lines => old_lines, :x => old_x, :y => old_y})
+				notify(opts, {:width => old_width, :lines => old_lines, :x => old_x, :y => old_y}) if notifications
 			end 
 		end
 		
