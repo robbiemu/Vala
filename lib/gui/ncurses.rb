@@ -106,8 +106,8 @@ EOF
 			end
 
 			def redraw()
-				Registry.actual_windows.each do |w|
-					w.update
+				Registry.actual_windows.keys.each do |k|
+					Registry.actual_windows[k].update
 				end
 			end
 
@@ -273,7 +273,7 @@ EOF
 			end
 
 			def calc_size()
-				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				terminal_width, terminal_height = Gui::NCurses::Terminal.size()
 				port_lines = terminal_height - ( 
 					Registry.actual_windows[:AttackStatus].lines +
 					Registry.actual_windows[:Log].lines)
@@ -331,7 +331,7 @@ EOF
 			end
 
 			def calc_size()
-				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				terminal_width, terminal_height = Gui::NCurses::Terminal.size()
 				port_lines = terminal_height - ( 
 					Registry.actual_windows[:AttackStatus].lines +
 					Registry.actual_windows[:Log].lines)
@@ -392,7 +392,7 @@ EOF
 			end		
 			
 			def calc_size()
-				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				terminal_width, terminal_height = Gui::NCurses::Terminal.size()
 				lines = terminal_height - Registry.actual_windows[:Log].lines
 				if lines > 1
 					lines = 1
@@ -438,6 +438,7 @@ EOF
 		end
 		
 		class Log < Port
+			attr_accessor :handle
 			attr_reader :is_popup, :port_lines
 
 			def initialize()
@@ -457,9 +458,6 @@ EOF
 						@x = opts[:port][:x]
 						@y = opts[:port][:y]
 					end
-
-					@label = Window.new(opts[:handle][:lines], opts[:handle][:width], opts[:handle][:x], opts[:handle][:y])
-					@port  = Window.new(opts[:port][:lines], opts[:port][:width], opts[:port][:x], opts[:port][:y])
 				else
 					@lines = -1
 					@width = -1
@@ -484,7 +482,7 @@ EOF
 			end
 
 			def calc_size()
-				terminal_height, terminal_width = Gui::NCurses::Terminal.size()
+				terminal_width, terminal_height = Gui::NCurses::Terminal.size()
 
 				#First, set the lines to the preferred value
 				lines = Vala.config.Gui.NCurses.Log.preferred_lines or 5
