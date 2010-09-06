@@ -6,7 +6,7 @@ module Main
 		def loop()
 			Kernel.loop do
 				sleep 1
-				Gui::Controller.redraw()
+				#Gui::Controller.redraw()
 			end
 		end
 

@@ -63,7 +63,7 @@ module Gui
 
 			def start()
 				if Registry.debug
-					Registry.actual_windows[:AttackStatus].port.update("Att/Def bias: A==- Ground bias: gain") 
+					Registry.actual_windows[:AttackStatus].update("Att/Def bias: A==- Ground bias: gain") 
 					Registry.actual_windows[:Map].label.update("Vala -- Dungeon:1") 
 map = <<EOF
    #......................................##
@@ -81,9 +81,12 @@ map = <<EOF
      ##............###..............##      
       ##............#..............##       
        ##...........#.............##        
-        #...........#.............#         
+        #.SHOUDNT SEE HERE ON DOWN.#         
+        #...........#...#.........##         
+        #........#..#.............#         
+        #...........#........#....#         
 EOF
-					Registry.actual_windows[:Map].port.update(map) 
+					Registry.actual_windows[:Map].update(map) 
 					Registry.actual_windows[:Player].label.update("Robbie, Level N\nMinotaur of Blah")
 statuses = <<EOF
 Vigour 100/100  ================
@@ -99,8 +102,8 @@ Qv: nothing quivered
        
    (statuses)
 EOF
-					Registry.actual_windows[:Player].port.update(statuses) 
-					Registry.actual_windows[:Log].handle.update("-" * (Gui::NCurses::Terminal::size()[0] - 4) + "[+]-") 
+					Registry.actual_windows[:Player].update(statuses) 
+					#Registry.actual_windows[:Log].handle.update("-" * (Gui::NCurses::Terminal::size()[0] - 4) + "[+]-") 
 					Registry.actual_windows[:Log].port.update("Line 1\nLine 2\nLine 3\nLine 4\nLine 5") 
 				end
 			end
@@ -123,6 +126,18 @@ EOF
 		class Window
 			attr_accessor :window
 			attr_reader   :lines, :width, :x, :y, :data
+
+			def initialize(lines, width, x, y, data=nil)
+				opts = {
+					:width => width,
+					:lines => lines,
+					:x     => x,
+					:y     => y
+ 
+				}
+				@window = nil;
+				resize(opts);
+			end
 
 			def update(data=nil)
 				if not data.nil?
@@ -469,6 +484,7 @@ EOF
 					if @is_popup
 						@handle = Window.new(opts[:handle][:lines], @width, @x,   0)
 						@port   = Window.new(opts[:port][:lines] - opts[:handle][:lines], @width, @x+1, 0)
+						@handle.update("-" * (Gui::NCurses::Terminal::size()[0] - 4) + "[+]-") 
 					else
 						@port   = Window.new(@lines, @width, @x,   0)
 					end
@@ -485,7 +501,7 @@ EOF
 				terminal_width, terminal_height = Gui::NCurses::Terminal.size()
 
 				#First, set the lines to the preferred value
-				lines = Vala.config.Gui.NCurses.Log.preferred_lines or 5
+				lines = Vala.config.Gui.NCurses.Log.preferred_lines
 				if @is_popup
 					lines += 1
 				end
@@ -503,12 +519,12 @@ EOF
 							:handle => {
 								:lines => 1,
 								:width => width,
-								:x     => 0,
+								:x     => x + 1,
 								:y     => 0
 							}, :port => {
-								:lines => lines - 1,
+								:lines => lines,
 								:width => width,
-								:x     => 1,
+								:x     => x,
 								:y     => 0						
 							}
 						}
@@ -517,7 +533,7 @@ EOF
 							:port => {
 								:lines => lines,
 								:width => width,
-								:x     => 1,
+								:x     => x,
 								:y     => 0						
 							}
 						}
